@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { ChevronRight, LogOut, Save, Scale, User, Wrench, Dumbbell } from 'lucide-react'
+import { ChevronRight, LogOut, RotateCcw, Save, Scale, User, Wrench, Dumbbell } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import * as profileApi from '../api/profile'
 import type { FullUser, HeightWeight } from '../types/user'
@@ -74,6 +74,18 @@ function PersonalInfoSection({ profile }: { profile: FullUser }) {
     },
     onError: () => toast.error('Failed to update profile'),
   })
+
+  const handleReset = () => {
+    const savedUnits = profile.profile.preferred_units
+    const savedIsImperial = savedUnits === 'imperial'
+    const savedHeight = profile.profile.height
+    setName(profile.profile.name)
+    setUnits(savedUnits)
+    setHeightFeet(savedIsImperial && savedHeight ? String(Math.floor(savedHeight.value / 12)) : '')
+    setHeightInches(savedIsImperial && savedHeight ? String(savedHeight.value % 12) : '')
+    setHeightCm(!savedIsImperial && savedHeight ? String(savedHeight.value) : '')
+    setWeight(profile.profile.weight ? String(profile.profile.weight.value) : '')
+  }
 
   const handleSave = () => {
     // Validation
@@ -178,11 +190,18 @@ function PersonalInfoSection({ profile }: { profile: FullUser }) {
           className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none" />
       </div>
 
-      <button onClick={handleSave} disabled={mutation.isPending}
-        className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
-        <Save className="h-4 w-4" />
-        {mutation.isPending ? 'Saving...' : 'Save Changes'}
-      </button>
+      <div className="mt-2 flex gap-2">
+        <button onClick={handleReset} disabled={mutation.isPending} type="button"
+          className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+          <RotateCcw className="h-4 w-4" />
+          Clear Changes
+        </button>
+        <button onClick={handleSave} disabled={mutation.isPending} type="button"
+          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+          <Save className="h-4 w-4" />
+          {mutation.isPending ? 'Saving...' : 'Save Changes'}
+        </button>
+      </div>
     </div>
   )
 }

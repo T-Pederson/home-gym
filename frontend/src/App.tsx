@@ -13,6 +13,7 @@ import { PlannerPage } from './pages/PlannerPage'
 import { ExerciseLibraryPage } from './pages/ExerciseLibraryPage'
 import { ProgressPage } from './pages/ProgressPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { ExerciseDetailPage } from './pages/ExerciseDetailPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,6 +53,7 @@ export default function App() {
                 <Route path="/home" element={<HomePage />} />
                 <Route path="/planner" element={<PlannerPage />} />
                 <Route path="/exercises" element={<ExerciseLibraryPage />} />
+                <Route path="/exercises/:id" element={<ExerciseDetailPage />} />
                 <Route path="/progress" element={<ProgressPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
               </Route>

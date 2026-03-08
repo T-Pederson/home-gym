@@ -5,6 +5,7 @@ import { ChevronRight, LogOut, RotateCcw, Save, Scale, User, Wrench, Dumbbell } 
 import { useAuth } from '../hooks/useAuth'
 import * as profileApi from '../api/profile'
 import type { FullUser, HeightWeight } from '../types/user'
+import ConfirmDialog from '../components/common/ConfirmDialog'
 
 const EQUIPMENT_OPTIONS = [
   'Barbell', 'Dumbbells', 'Kettlebell', 'Pull-up Bar', 'Bench', 'Squat Rack',
@@ -342,6 +343,7 @@ function BodyWeightSection({ profile }: { profile: FullUser }) {
   const unit = isImperial ? 'lbs' : 'kg'
 
   const [newWeight, setNewWeight] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const { data: history = [] } = useQuery({
     queryKey: ['bodyWeight'],
@@ -400,7 +402,7 @@ function BodyWeightSection({ profile }: { profile: FullUser }) {
                   {new Date(entry.recorded_at).toLocaleDateString()}
                 </span>
               </div>
-              <button onClick={() => deleteMutation.mutate(entry.id)}
+              <button onClick={() => setConfirmDeleteId(entry.id)}
                 className="text-xs text-red-500 hover:text-red-700">
                 Remove
               </button>
@@ -409,6 +411,21 @@ function BodyWeightSection({ profile }: { profile: FullUser }) {
         </div>
       ) : (
         <p className="text-sm text-gray-500">No weight entries yet. Log your first one above.</p>
+      )}
+
+      {confirmDeleteId && (
+        <ConfirmDialog
+          title="Delete entry?"
+          message="This weight entry will be permanently removed."
+          confirmLabel="Delete"
+          isLoading={deleteMutation.isPending}
+          onConfirm={() => {
+            deleteMutation.mutate(confirmDeleteId, {
+              onSettled: () => setConfirmDeleteId(null),
+            })
+          }}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       )}
     </div>
   )

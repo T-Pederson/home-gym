@@ -254,3 +254,65 @@ async def delete_body_weight_entry(
     entry = await BodyWeightEntry.get(entry_id)
     if entry and entry.user_id == str(user.id):
         await entry.delete()
+
+
+# --- Exercise Like / Dislike ---
+
+
+class LikeDislikeResponse(BaseModel):
+    liked_exercises: list[str]
+    disliked_exercises: list[str]
+
+
+@router.post("/me/exercises/{exercise_id}/like", response_model=LikeDislikeResponse)
+async def like_exercise(exercise_id: str, user: User = Depends(get_current_user)):
+    if exercise_id not in user.liked_exercises:
+        user.liked_exercises.append(exercise_id)
+    # Remove from disliked if present
+    if exercise_id in user.disliked_exercises:
+        user.disliked_exercises.remove(exercise_id)
+    user.updated_at = datetime.utcnow()
+    await user.save()
+    return LikeDislikeResponse(
+        liked_exercises=user.liked_exercises,
+        disliked_exercises=user.disliked_exercises,
+    )
+
+
+@router.delete("/me/exercises/{exercise_id}/like", response_model=LikeDislikeResponse)
+async def remove_like(exercise_id: str, user: User = Depends(get_current_user)):
+    if exercise_id in user.liked_exercises:
+        user.liked_exercises.remove(exercise_id)
+    user.updated_at = datetime.utcnow()
+    await user.save()
+    return LikeDislikeResponse(
+        liked_exercises=user.liked_exercises,
+        disliked_exercises=user.disliked_exercises,
+    )
+
+
+@router.post("/me/exercises/{exercise_id}/dislike", response_model=LikeDislikeResponse)
+async def dislike_exercise(exercise_id: str, user: User = Depends(get_current_user)):
+    if exercise_id not in user.disliked_exercises:
+        user.disliked_exercises.append(exercise_id)
+    # Remove from liked if present
+    if exercise_id in user.liked_exercises:
+        user.liked_exercises.remove(exercise_id)
+    user.updated_at = datetime.utcnow()
+    await user.save()
+    return LikeDislikeResponse(
+        liked_exercises=user.liked_exercises,
+        disliked_exercises=user.disliked_exercises,
+    )
+
+
+@router.delete("/me/exercises/{exercise_id}/dislike", response_model=LikeDislikeResponse)
+async def remove_dislike(exercise_id: str, user: User = Depends(get_current_user)):
+    if exercise_id in user.disliked_exercises:
+        user.disliked_exercises.remove(exercise_id)
+    user.updated_at = datetime.utcnow()
+    await user.save()
+    return LikeDislikeResponse(
+        liked_exercises=user.liked_exercises,
+        disliked_exercises=user.disliked_exercises,
+    )

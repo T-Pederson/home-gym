@@ -47,5 +47,8 @@ mongo_data/
 # Exercise images (large, downloaded separately)
 frontend/public/exercise-images/
 
+# Seeded exercise data (auto-downloaded by scripts/seed_exercises.py)
+backend/data/exercises.json
+
 # Claude
 .claude/

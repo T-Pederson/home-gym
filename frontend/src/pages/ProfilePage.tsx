@@ -242,11 +242,18 @@ function EquipmentSection({ profile }: { profile: FullUser }) {
           </button>
         ))}
       </div>
-      <button onClick={() => mutation.mutate(equipment)} disabled={mutation.isPending}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
-        <Save className="h-4 w-4" />
-        {mutation.isPending ? 'Saving...' : 'Save Equipment'}
-      </button>
+      <div className="flex gap-2">
+        <button onClick={() => setEquipment(profile.equipment_owned)} disabled={mutation.isPending} type="button"
+          className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+          <RotateCcw className="h-4 w-4" />
+          Clear Changes
+        </button>
+        <button onClick={() => mutation.mutate(equipment)} disabled={mutation.isPending} type="button"
+          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+          <Save className="h-4 w-4" />
+          {mutation.isPending ? 'Saving...' : 'Save Equipment'}
+        </button>
+      </div>
     </div>
   )
 }
@@ -310,12 +317,20 @@ function PreferencesSection({ profile }: { profile: FullUser }) {
         </div>
       </div>
 
-      <button onClick={() => mutation.mutate({ preferred_style: style, default_duration_minutes: duration, experience_level: experience })}
-        disabled={mutation.isPending}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
-        <Save className="h-4 w-4" />
-        {mutation.isPending ? 'Saving...' : 'Save Preferences'}
-      </button>
+      <div className="flex gap-2">
+        <button onClick={() => { setStyle(prefs.preferred_style); setDuration(prefs.default_duration_minutes); setExperience(prefs.experience_level) }}
+          disabled={mutation.isPending} type="button"
+          className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+          <RotateCcw className="h-4 w-4" />
+          Clear Changes
+        </button>
+        <button onClick={() => mutation.mutate({ preferred_style: style, default_duration_minutes: duration, experience_level: experience })}
+          disabled={mutation.isPending} type="button"
+          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+          <Save className="h-4 w-4" />
+          {mutation.isPending ? 'Saving...' : 'Save Preferences'}
+        </button>
+      </div>
     </div>
   )
 }

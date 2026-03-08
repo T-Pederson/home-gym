@@ -51,6 +51,32 @@ export function OnboardingPage() {
 
   const handleSubmit = async () => {
     setError('')
+
+    // Validation
+    const weightVal = parseFloat(weight)
+    if (!weight || isNaN(weightVal) || weightVal <= 0) {
+      setError('Please enter a valid weight greater than 0')
+      return
+    }
+    if (units === 'imperial') {
+      const feet = parseInt(heightFeet) || 0
+      const inches = parseInt(heightInches) || 0
+      if (feet < 0 || inches < 0) {
+        setError('Height cannot be negative')
+        return
+      }
+      if (inches >= 12) {
+        setError('Inches must be less than 12')
+        return
+      }
+    } else {
+      const cm = parseInt(heightFeet) || 0
+      if (cm < 0) {
+        setError('Height cannot be negative')
+        return
+      }
+    }
+
     setSubmitting(true)
     try {
       const heightValue =
@@ -124,6 +150,7 @@ export function OnboardingPage() {
             type="number"
             value={heightFeet}
             onChange={(e) => setHeightFeet(e.target.value)}
+            min={0}
             className="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
             placeholder={units === 'imperial' ? 'Feet' : 'cm'}
           />
@@ -132,6 +159,8 @@ export function OnboardingPage() {
               type="number"
               value={heightInches}
               onChange={(e) => setHeightInches(e.target.value)}
+              min={0}
+              max={11}
               className="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
               placeholder="Inches"
             />
@@ -147,6 +176,7 @@ export function OnboardingPage() {
           type="number"
           value={weight}
           onChange={(e) => setWeight(e.target.value)}
+          min={0}
           className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
           placeholder={units === 'imperial' ? 'lbs' : 'kg'}
         />

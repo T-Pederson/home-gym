@@ -76,6 +76,29 @@ function PersonalInfoSection({ profile }: { profile: FullUser }) {
   })
 
   const handleSave = () => {
+    // Validation
+    if (isImperial) {
+      const feet = parseInt(heightFeet) || 0
+      const inches = parseInt(heightInches) || 0
+      if (feet < 0 || inches < 0) {
+        toast.error('Height cannot be negative')
+        return
+      }
+      if (inches >= 12) {
+        toast.error('Inches must be less than 12')
+        return
+      }
+    } else {
+      if ((parseInt(heightCm) || 0) < 0) {
+        toast.error('Height cannot be negative')
+        return
+      }
+    }
+    if ((parseFloat(weight) || 0) < 0) {
+      toast.error('Weight cannot be negative')
+      return
+    }
+
     const heightValue = isImperial
       ? (parseInt(heightFeet) || 0) * 12 + (parseInt(heightInches) || 0)
       : parseInt(heightCm) || 0
@@ -129,14 +152,17 @@ function PersonalInfoSection({ profile }: { profile: FullUser }) {
           {isImperial ? (
             <>
               <input type="number" value={heightFeet} onChange={(e) => setHeightFeet(e.target.value)}
+                min={0}
                 className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                 placeholder="ft" />
               <input type="number" value={heightInches} onChange={(e) => setHeightInches(e.target.value)}
+                min={0} max={11}
                 className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                 placeholder="in" />
             </>
           ) : (
             <input type="number" value={heightCm} onChange={(e) => setHeightCm(e.target.value)}
+              min={0}
               className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
               placeholder="cm" />
           )}
@@ -148,6 +174,7 @@ function PersonalInfoSection({ profile }: { profile: FullUser }) {
           Weight ({isImperial ? 'lbs' : 'kg'})
         </label>
         <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)}
+          min={0}
           className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none" />
       </div>
 

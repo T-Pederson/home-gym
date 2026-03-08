@@ -14,6 +14,7 @@ import * as exercisesApi from "../api/exercises";
 import * as profileApi from "../api/profile";
 import { useAuthStore } from "../stores/authStore";
 import { IMAGE_BASE_URL } from "../types/exercise";
+import ConfirmDialog from "../components/common/ConfirmDialog";
 
 const levelColor: Record<string, string> = {
   beginner: "bg-emerald-100 text-emerald-700",
@@ -27,6 +28,7 @@ export function ExerciseDetailPage() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const [imageIndex, setImageIndex] = useState(0);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const { data: exercise, isLoading } = useQuery({
     queryKey: ["exercise", id],
@@ -73,11 +75,7 @@ export function ExerciseDetailPage() {
     onError: () => toast.error("Failed to delete exercise"),
   });
 
-  const handleDelete = () => {
-    if (confirm("Delete this custom exercise? This cannot be undone.")) {
-      deleteMutation.mutate();
-    }
-  };
+  const handleDelete = () => setShowDeleteConfirm(true);
 
   if (isLoading) {
     return (
@@ -215,7 +213,7 @@ export function ExerciseDetailPage() {
               type="button"
               onClick={() => likeMutation.mutate()}
               disabled={likeMutation.isPending || dislikeMutation.isPending}
-              className={`flex flex-col items-center gap-0.5 rounded-xl p-2.5 transition-colors ${
+              className={`rounded-xl p-3 transition-colors ${
                 isLiked
                   ? "bg-emerald-100 text-emerald-600"
                   : "bg-gray-100 text-gray-500 hover:text-emerald-500"
@@ -223,15 +221,12 @@ export function ExerciseDetailPage() {
               title={isLiked ? "Remove like" : "Like"}
             >
               <ThumbsUp className="h-5 w-5" />
-              <span className="text-[10px] font-medium">
-                {isLiked ? "Liked" : "Like"}
-              </span>
             </button>
             <button
               type="button"
               onClick={() => dislikeMutation.mutate()}
               disabled={likeMutation.isPending || dislikeMutation.isPending}
-              className={`flex flex-col items-center gap-0.5 rounded-xl p-2.5 transition-colors ${
+              className={`rounded-xl p-3 transition-colors ${
                 isDisliked
                   ? "bg-red-100 text-red-500"
                   : "bg-gray-100 text-gray-500 hover:text-red-400"
@@ -239,9 +234,6 @@ export function ExerciseDetailPage() {
               title={isDisliked ? "Remove dislike" : "Dislike"}
             >
               <ThumbsDown className="h-5 w-5" />
-              <span className="text-[10px] font-medium">
-                {isDisliked ? "Disliked" : "Dislike"}
-              </span>
             </button>
           </div>
         </div>
@@ -318,6 +310,17 @@ export function ExerciseDetailPage() {
           </div>
         )}
       </div>
+
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          title="Delete exercise?"
+          message="This custom exercise will be permanently deleted and cannot be recovered."
+          confirmLabel="Delete"
+          isLoading={deleteMutation.isPending}
+          onConfirm={() => deleteMutation.mutate()}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </div>
   );
 }

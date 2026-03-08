@@ -1,10 +1,12 @@
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from beanie import SortDirection
+from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, Field
 
 from app.dependencies.auth import get_current_user
+from app.models.body_weight import BodyWeightEntry
 from app.models.user import (
     HeightWeight,
     User,
@@ -165,6 +167,15 @@ async def complete_onboarding(
     user.updated_at = datetime.utcnow()
     await user.save()
 
+    # Log the onboarding weight as the first body weight entry
+    if body.weight and body.weight.value > 0:
+        await BodyWeightEntry(
+            user_id=str(user.id),
+            weight=body.weight.value,
+            unit=body.weight.unit,
+            recorded_at=datetime.utcnow(),
+        ).insert()
+
     return ProfileResponse(
         id=str(user.id),
         username=user.username,
@@ -175,3 +186,71 @@ async def complete_onboarding(
         liked_exercises=user.liked_exercises,
         disliked_exercises=user.disliked_exercises,
     )
+
+
+# --- Body Weight Logging ---
+
+
+class BodyWeightRequest(BaseModel):
+    weight: float = Field(gt=0)
+    unit: str = "lbs"
+    recorded_at: Optional[datetime] = None
+
+
+class BodyWeightResponse(BaseModel):
+    id: str
+    weight: float
+    unit: str
+    recorded_at: datetime
+
+
+@router.post("/me/weight", response_model=BodyWeightResponse, status_code=201)
+async def log_body_weight(
+    body: BodyWeightRequest, user: User = Depends(get_current_user)
+):
+    entry = BodyWeightEntry(
+        user_id=str(user.id),
+        weight=body.weight,
+        unit=body.unit,
+        recorded_at=body.recorded_at or datetime.utcnow(),
+    )
+    await entry.insert()
+
+    return BodyWeightResponse(
+        id=str(entry.id),
+        weight=entry.weight,
+        unit=entry.unit,
+        recorded_at=entry.recorded_at,
+    )
+
+
+@router.get("/me/weight", response_model=list[BodyWeightResponse])
+async def get_body_weight_history(
+    user: User = Depends(get_current_user),
+    limit: int = Query(default=30, ge=1, le=365),
+):
+    entries = (
+        await BodyWeightEntry.find(BodyWeightEntry.user_id == str(user.id))
+        .sort(("recorded_at", SortDirection.DESCENDING))
+        .limit(limit)
+        .to_list()
+    )
+
+    return [
+        BodyWeightResponse(
+            id=str(e.id),
+            weight=e.weight,
+            unit=e.unit,
+            recorded_at=e.recorded_at,
+        )
+        for e in entries
+    ]
+
+
+@router.delete("/me/weight/{entry_id}", status_code=204)
+async def delete_body_weight_entry(
+    entry_id: str, user: User = Depends(get_current_user)
+):
+    entry = await BodyWeightEntry.get(entry_id)
+    if entry and entry.user_id == str(user.id):
+        await entry.delete()

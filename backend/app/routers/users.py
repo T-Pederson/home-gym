@@ -167,6 +167,15 @@ async def complete_onboarding(
     user.updated_at = datetime.utcnow()
     await user.save()
 
+    # Log the onboarding weight as the first body weight entry
+    if body.weight and body.weight.value > 0:
+        await BodyWeightEntry(
+            user_id=str(user.id),
+            weight=body.weight.value,
+            unit=body.weight.unit,
+            recorded_at=datetime.utcnow(),
+        ).insert()
+
     return ProfileResponse(
         id=str(user.id),
         username=user.username,

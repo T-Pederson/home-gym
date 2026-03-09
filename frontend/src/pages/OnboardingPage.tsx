@@ -15,7 +15,8 @@ const EQUIPMENT_OPTIONS = [
   'Medicine Ball',
   'Jump Rope',
   'Foam Roller',
-  'Body Only',
+  'Body Weight',
+  'Misc/Other',
 ]
 
 const STYLE_OPTIONS = [
@@ -308,7 +309,14 @@ export function OnboardingPage() {
             {step < steps.length - 1 ? (
               <button
                 type="button"
-                onClick={() => setStep(step + 1)}
+                onClick={() => {
+                  if (step === 1 && equipment.length === 0) {
+                    setError('Please select at least one equipment option.')
+                    return
+                  }
+                  setError('')
+                  setStep(step + 1)
+                }}
                 className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
               >
                 Next

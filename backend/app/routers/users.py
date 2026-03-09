@@ -103,6 +103,12 @@ async def update_profile(
 async def update_equipment(
     body: UpdateEquipmentRequest, user: User = Depends(get_current_user)
 ):
+    from fastapi import HTTPException
+    if not body.equipment_owned:
+        raise HTTPException(
+            status_code=422,
+            detail="At least one equipment option must be selected.",
+        )
     user.equipment_owned = body.equipment_owned
     user.updated_at = datetime.utcnow()
     await user.save()
@@ -155,6 +161,12 @@ async def update_preferences(
 async def complete_onboarding(
     body: OnboardingRequest, user: User = Depends(get_current_user)
 ):
+    from fastapi import HTTPException
+    if not body.equipment_owned:
+        raise HTTPException(
+            status_code=422,
+            detail="At least one equipment option must be selected.",
+        )
     user.profile.name = body.name
     user.profile.height = body.height
     user.profile.weight = body.weight

@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { Search, SlidersHorizontal, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { useState } from "react";
 import type { ExerciseFilters, ExerciseMetadata } from "../../types/exercise";
 import { MUSCLE_GROUP_LABELS } from "../../types/exercise";
@@ -20,7 +20,9 @@ export default function ExerciseFiltersBar({ filters, metadata, onChange }: Prop
     filters.equipment ||
     filters.category ||
     filters.level ||
-    filters.custom_only;
+    filters.custom_only ||
+    filters.liked_only ||
+    filters.disliked_only;
 
   return (
     <div className="space-y-2">
@@ -94,6 +96,8 @@ export default function ExerciseFiltersBar({ filters, metadata, onChange }: Prop
                 category: "",
                 level: "",
                 custom_only: false,
+                liked_only: false,
+                disliked_only: false,
               })
             }
             className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700"
@@ -175,6 +179,34 @@ export default function ExerciseFiltersBar({ filters, metadata, onChange }: Prop
                 My custom only
               </span>
             </label>
+          </div>
+
+          {/* Liked / Disliked — full width row, mutually exclusive */}
+          <div className="col-span-2 flex gap-2 pt-1 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => update({ liked_only: !filters.liked_only, disliked_only: false })}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-1.5 text-xs font-medium transition-colors ${
+                filters.liked_only
+                  ? "border-green-300 bg-green-50 text-green-700"
+                  : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              <ThumbsUp className="h-3.5 w-3.5" />
+              Liked
+            </button>
+            <button
+              type="button"
+              onClick={() => update({ disliked_only: !filters.disliked_only, liked_only: false })}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-1.5 text-xs font-medium transition-colors ${
+                filters.disliked_only
+                  ? "border-red-300 bg-red-50 text-red-700"
+                  : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              <ThumbsDown className="h-3.5 w-3.5" />
+              Disliked
+            </button>
           </div>
         </div>
       )}

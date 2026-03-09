@@ -9,7 +9,8 @@ import ConfirmDialog from '../components/common/ConfirmDialog'
 
 const EQUIPMENT_OPTIONS = [
   'Barbell', 'Dumbbells', 'Kettlebell', 'Pull-up Bar', 'Bench', 'Squat Rack',
-  'Cable Machine', 'Resistance Bands', 'Medicine Ball', 'Jump Rope', 'Foam Roller', 'Body Only',
+  'Cable Machine', 'Resistance Bands', 'Medicine Ball', 'Jump Rope', 'Foam Roller',
+  'Body Weight', 'Misc/Other',
 ]
 
 const STYLE_OPTIONS = [
@@ -249,7 +250,15 @@ function EquipmentSection({ profile }: { profile: FullUser }) {
           <RotateCcw className="h-4 w-4" />
           Clear Changes
         </button>
-        <button onClick={() => mutation.mutate(equipment)} disabled={mutation.isPending} type="button"
+        <button
+          onClick={() => {
+            if (equipment.length === 0) {
+              toast.error('Please select at least one equipment option.')
+              return
+            }
+            mutation.mutate(equipment)
+          }}
+          disabled={mutation.isPending} type="button"
           className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
           <Save className="h-4 w-4" />
           {mutation.isPending ? 'Saving...' : 'Save Equipment'}

@@ -68,6 +68,13 @@ WARMUP_BUFFER_MINUTES = 5
 LIKED_WEIGHT = 2.0
 NORMAL_WEIGHT = 1.0
 
+# Maps user experience_level → allowed exercise level values (inclusive, cumulative)
+LEVEL_MAP: dict[str, list[str]] = {
+    "beginner":     ["beginner"],
+    "intermediate": ["beginner", "intermediate"],
+    "advanced":     ["beginner", "intermediate", "expert"],
+}
+
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -87,6 +94,10 @@ async def generate_workout(
     equipment_filter = _build_equipment_filter(user.equipment_owned)
     disliked_ids = set(user.disliked_exercises)
     liked_ids = set(user.liked_exercises)
+    allowed_levels = LEVEL_MAP.get(
+        user.workout_preferences.experience_level,
+        LEVEL_MAP["advanced"],  # fallback: allow all levels
+    )
 
     # Separate "cardio" from muscle-based groups
     muscle_groups_filtered = [g for g in muscle_groups if g != "cardio"]
@@ -94,13 +105,13 @@ async def generate_workout(
 
     # Build exercise pool per group (muscle-based)
     pool_by_group = await _build_pool_by_group(
-        muscle_groups_filtered, equipment_filter, disliked_ids
+        muscle_groups_filtered, equipment_filter, disliked_ids, allowed_levels
     )
 
     # If cardio requested, also fetch cardio-category exercises
     cardio_pool: list[Exercise] = []
     if include_cardio:
-        cardio_pool = await _fetch_cardio_exercises(equipment_filter, disliked_ids)
+        cardio_pool = await _fetch_cardio_exercises(equipment_filter, disliked_ids, allowed_levels)
 
     # Determine exercise counts
     if style == "hiit":
@@ -185,6 +196,7 @@ async def _build_pool_by_group(
     muscle_groups: list[str],
     equipment_filter: list[str],
     disliked_ids: set[str],
+    allowed_levels: list[str],
 ) -> dict[str, list[Exercise]]:
     pool_by_group: dict[str, list[Exercise]] = {}
 
@@ -197,6 +209,7 @@ async def _build_pool_by_group(
         query: dict = {
             "primary_muscles": {"$in": db_muscles},
             "equipment": {"$in": equipment_filter},
+            "level": {"$in": allowed_levels},
         }
         if disliked_ids:
             query["_id"] = {"$nin": [ObjectId(eid) for eid in disliked_ids if _valid_oid(eid)]}
@@ -210,10 +223,12 @@ async def _build_pool_by_group(
 async def _fetch_cardio_exercises(
     equipment_filter: list[str],
     disliked_ids: set[str],
+    allowed_levels: list[str],
 ) -> list[Exercise]:
     query: dict = {
         "category": "cardio",
         "equipment": {"$in": equipment_filter},
+        "level": {"$in": allowed_levels},
     }
     if disliked_ids:
         query["_id"] = {"$nin": [ObjectId(eid) for eid in disliked_ids if _valid_oid(eid)]}

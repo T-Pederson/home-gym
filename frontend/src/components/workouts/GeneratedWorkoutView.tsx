@@ -1,9 +1,26 @@
 import { useState } from 'react'
 import { Clock, Dumbbell, RefreshCw, Save } from 'lucide-react'
-import type { EditableExercise, GeneratedWorkout } from '../../types/workout'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import type { EditableExercise, GeneratedWorkout, WeightSuggestion } from '../../types/workout'
+import type { Exercise } from '../../types/exercise'
 import WorkoutExerciseRow from './WorkoutExerciseRow'
 import HIITConfigPanel from './HIITConfigPanel'
 import SaveWorkoutModal from './SaveWorkoutModal'
+import ExerciseInfoModal from './ExerciseInfoModal'
+import ExerciseReplaceModal from './ExerciseReplaceModal'
 
 const STYLE_LABELS: Record<string, string> = {
   strength: 'Strength',
@@ -42,6 +59,16 @@ function initEditableExercises(workout: GeneratedWorkout): EditableExercise[] {
 export default function GeneratedWorkoutView({ workout, isSaving, onSave, onRegenerate }: Props) {
   const [exercises, setExercises] = useState<EditableExercise[]>(() => initEditableExercises(workout))
   const [showSaveModal, setShowSaveModal] = useState(false)
+  const [infoTarget, setInfoTarget] = useState<EditableExercise | null>(null)
+  const [replaceTarget, setReplaceTarget] = useState<{ index: number; ex: EditableExercise } | null>(null)
+
+  const sensors = useSensors(
+    // Desktop: start drag after 8px of mouse movement (prevents misclicks on buttons)
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    // Mobile: require a 200ms hold on the grip handle before drag starts,
+    // allowing up to 5px of finger drift during the hold without cancelling
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+  )
 
   // HIIT config state
   const [isCircuit, setIsCircuit] = useState(workout.is_circuit)
@@ -52,6 +79,46 @@ export default function GeneratedWorkoutView({ workout, isSaving, onSave, onRege
 
   function handleExerciseChange(index: number, updated: EditableExercise) {
     setExercises((prev) => prev.map((e, i) => (i === index ? updated : e)))
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (over && active.id !== over.id) {
+      setExercises((prev) => {
+        const oldIndex = prev.findIndex((e) => e.exercise.id === active.id)
+        const newIndex = prev.findIndex((e) => e.exercise.id === over.id)
+        return arrayMove(prev, oldIndex, newIndex)
+      })
+    }
+  }
+
+  function handleReplace(newExercise: Exercise) {
+    if (!replaceTarget) return
+    const { index, ex } = replaceTarget
+    const sameType = newExercise.is_time_based === ex.exercise.is_time_based
+    const firstTimeSuggestion: WeightSuggestion = {
+      suggested_weight: null,
+      previous_weight: null,
+      weight_unit: ex.weight_unit,
+      note: 'first_time',
+    }
+    setExercises((prev) =>
+      prev.map((e, i) => {
+        if (i !== index) return e
+        return {
+          ...e,
+          exercise: newExercise,
+          reps: newExercise.is_time_based ? null : (sameType ? ex.reps : 10),
+          duration_seconds: newExercise.is_time_based
+            ? (sameType ? ex.duration_seconds : 45)
+            : null,
+          weight: null,
+          weight_suggestion: firstTimeSuggestion,
+          use_previous_weight: false,
+        }
+      })
+    )
+    setReplaceTarget(null)
   }
 
   function handleSave(name: string) {
@@ -98,17 +165,23 @@ export default function GeneratedWorkoutView({ workout, isSaving, onSave, onRege
         )}
 
         {/* Exercise list */}
-        <div className="space-y-3">
-          {exercises.map((ex, i) => (
-            <WorkoutExerciseRow
-              key={ex.exercise.id}
-              ex={ex}
-              index={i}
-              isHIIT={isHIIT}
-              onChange={(updated) => handleExerciseChange(i, updated)}
-            />
-          ))}
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={exercises.map((e) => e.exercise.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-3">
+              {exercises.map((ex, i) => (
+                <WorkoutExerciseRow
+                  key={ex.exercise.id}
+                  ex={ex}
+                  index={i}
+                  isHIIT={isHIIT}
+                  onChange={(updated) => handleExerciseChange(i, updated)}
+                  onInfo={() => setInfoTarget(ex)}
+                  onReplace={() => setReplaceTarget({ index: i, ex })}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
 
         {/* Action buttons */}
         <div className="flex gap-3 pt-2">
@@ -136,6 +209,21 @@ export default function GeneratedWorkoutView({ workout, isSaving, onSave, onRege
           isSaving={isSaving}
           onSave={handleSave}
           onCancel={() => setShowSaveModal(false)}
+        />
+      )}
+
+      {infoTarget && (
+        <ExerciseInfoModal
+          exercise={infoTarget.exercise}
+          onClose={() => setInfoTarget(null)}
+        />
+      )}
+
+      {replaceTarget && (
+        <ExerciseReplaceModal
+          target={replaceTarget.ex}
+          onReplace={handleReplace}
+          onClose={() => setReplaceTarget(null)}
         />
       )}
     </>

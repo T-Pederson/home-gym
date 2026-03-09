@@ -80,12 +80,26 @@ async def list_exercises(
     category: Optional[str] = Query(None, description="Category filter"),
     level: Optional[str] = Query(None, description="Level filter"),
     custom_only: bool = Query(False, description="Show only custom exercises"),
+    liked_only: bool = Query(False, description="Show only liked exercises"),
+    disliked_only: bool = Query(False, description="Show only disliked exercises"),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
 ) -> ExerciseListResponse:
     """Search and filter exercises with pagination."""
     query: dict = {}
+
+    # liked_only / disliked_only: filter to the user's preference lists
+    if liked_only:
+        ids = [ObjectId(eid) for eid in (current_user.liked_exercises or []) if ObjectId.is_valid(eid)]
+        if not ids:
+            return ExerciseListResponse(exercises=[], total=0, page=page, per_page=per_page, total_pages=1)
+        query["_id"] = {"$in": ids}
+    elif disliked_only:
+        ids = [ObjectId(eid) for eid in (current_user.disliked_exercises or []) if ObjectId.is_valid(eid)]
+        if not ids:
+            return ExerciseListResponse(exercises=[], total=0, page=page, per_page=per_page, total_pages=1)
+        query["_id"] = {"$in": ids}
 
     if custom_only:
         query["is_custom"] = True

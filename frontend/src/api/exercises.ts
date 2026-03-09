@@ -17,6 +17,8 @@ export async function getExercises(
   if (filters.category) params.category = filters.category;
   if (filters.level) params.level = filters.level;
   if (filters.custom_only) params.custom_only = true;
+  if (filters.liked_only) params.liked_only = true;
+  if (filters.disliked_only) params.disliked_only = true;
   if (filters.page) params.page = filters.page;
   if (filters.per_page) params.per_page = filters.per_page;
 

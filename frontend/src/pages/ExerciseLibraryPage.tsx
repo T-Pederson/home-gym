@@ -16,6 +16,8 @@ const DEFAULT_FILTERS: ExerciseFilters = {
   category: "",
   level: "",
   custom_only: false,
+  liked_only: false,
+  disliked_only: false,
 };
 
 const PER_PAGE = 20;

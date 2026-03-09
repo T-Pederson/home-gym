@@ -39,6 +39,8 @@ export interface ExerciseFilters {
   category: string;
   level: string;
   custom_only: boolean;
+  liked_only: boolean;
+  disliked_only: boolean;
 }
 
 export interface ExerciseCreate {

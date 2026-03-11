@@ -1,4 +1,4 @@
-import { Clock, Dumbbell, Heart, MoreVertical, Trash2 } from 'lucide-react'
+import { Clock, Dumbbell, Heart, MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import type { Workout } from '../../types/workout'
 
@@ -21,9 +21,10 @@ interface Props {
   onView: (workout: Workout) => void
   onFavorite: (id: string) => void
   onDelete: (id: string) => void
+  onEdit: (id: string) => void
 }
 
-export default function SavedWorkoutCard({ workout, onView, onFavorite, onDelete }: Props) {
+export default function SavedWorkoutCard({ workout, onView, onFavorite, onDelete, onEdit }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
@@ -63,6 +64,14 @@ export default function SavedWorkoutCard({ workout, onView, onFavorite, onDelete
               <>
                 <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setMenuOpen(false) }} />
                 <div className="absolute right-0 z-20 mt-1 w-36 rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(workout.id) }}
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Edit
+                  </button>
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(workout.id) }}

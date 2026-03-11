@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Clock, Dumbbell, RefreshCw, Save } from 'lucide-react'
+import { Fragment, useState } from 'react'
+import { Clock, Dumbbell, Play, RefreshCw, Save } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -21,6 +21,8 @@ import HIITConfigPanel from './HIITConfigPanel'
 import SaveWorkoutModal from './SaveWorkoutModal'
 import ExerciseInfoModal from './ExerciseInfoModal'
 import ExerciseReplaceModal from './ExerciseReplaceModal'
+import SupersetLink from '../session/SupersetLink'
+import { areSupersetted, toggleSupersetLink } from '../../utils/superset'
 
 const STYLE_LABELS: Record<string, string> = {
   strength: 'Strength',
@@ -41,6 +43,7 @@ interface Props {
   isSaving: boolean
   onSave: (name: string, exercises: EditableExercise[], isCircuit: boolean, rounds: number) => void
   onRegenerate: () => void
+  onStart: (exercises: EditableExercise[]) => void
 }
 
 function initEditableExercises(workout: GeneratedWorkout): EditableExercise[] {
@@ -52,11 +55,12 @@ function initEditableExercises(workout: GeneratedWorkout): EditableExercise[] {
       weight,
       weight_unit: suggestion.weight_unit || 'lbs',
       use_previous_weight: false,
+      superset_group: null,
     }
   })
 }
 
-export default function GeneratedWorkoutView({ workout, isSaving, onSave, onRegenerate }: Props) {
+export default function GeneratedWorkoutView({ workout, isSaving, onSave, onRegenerate, onStart }: Props) {
   const [exercises, setExercises] = useState<EditableExercise[]>(() => initEditableExercises(workout))
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [infoTarget, setInfoTarget] = useState<EditableExercise | null>(null)
@@ -115,6 +119,7 @@ export default function GeneratedWorkoutView({ workout, isSaving, onSave, onRege
           weight: null,
           weight_suggestion: firstTimeSuggestion,
           use_previous_weight: false,
+          superset_group: e.superset_group,
         }
       })
     )
@@ -167,39 +172,54 @@ export default function GeneratedWorkoutView({ workout, isSaving, onSave, onRege
         {/* Exercise list */}
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={exercises.map((e) => e.exercise.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-3">
+            <div>
               {exercises.map((ex, i) => (
-                <WorkoutExerciseRow
-                  key={ex.exercise.id}
-                  ex={ex}
-                  index={i}
-                  isHIIT={isHIIT}
-                  onChange={(updated) => handleExerciseChange(i, updated)}
-                  onInfo={() => setInfoTarget(ex)}
-                  onReplace={() => setReplaceTarget({ index: i, ex })}
-                />
+                <Fragment key={ex.exercise.id}>
+                  <WorkoutExerciseRow
+                    ex={ex}
+                    index={i}
+                    isHIIT={isHIIT}
+                    onChange={(updated) => handleExerciseChange(i, updated)}
+                    onInfo={() => setInfoTarget(ex)}
+                    onReplace={() => setReplaceTarget({ index: i, ex })}
+                  />
+                  {i < exercises.length - 1 && (
+                    <SupersetLink
+                      linked={areSupersetted(exercises, i)}
+                      onToggle={() => setExercises((prev) => toggleSupersetLink(prev, i))}
+                    />
+                  )}
+                </Fragment>
               ))}
             </div>
           </SortableContext>
         </DndContext>
 
         {/* Action buttons */}
-        <div className="flex gap-3 pt-2">
+        <div className="grid grid-cols-3 gap-2 pt-2">
           <button
             type="button"
             onClick={onRegenerate}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-3 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
           >
             <RefreshCw className="h-4 w-4" />
-            Regenerate
+            Redo
           </button>
           <button
             type="button"
             onClick={() => setShowSaveModal(true)}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-3 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
           >
             <Save className="h-4 w-4" />
-            Save Workout
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={() => onStart(exercises)}
+            className="flex items-center justify-center gap-1.5 rounded-lg bg-green-600 px-3 py-3 text-sm font-semibold text-white hover:bg-green-700"
+          >
+            <Play className="h-4 w-4" />
+            Start
           </button>
         </div>
       </div>

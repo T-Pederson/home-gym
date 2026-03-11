@@ -14,6 +14,8 @@ import { ExerciseLibraryPage } from './pages/ExerciseLibraryPage'
 import { ProgressPage } from './pages/ProgressPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ExerciseDetailPage } from './pages/ExerciseDetailPage'
+import { ActiveWorkoutPage } from './pages/ActiveWorkoutPage'
+import { EditWorkoutPage } from './pages/EditWorkoutPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,6 +51,10 @@ export default function App() {
             </Route>
 
             <Route element={<ProtectedRoute />}>
+              {/* Full-screen pages — no bottom nav */}
+              <Route path="/workout/active" element={<ActiveWorkoutPage />} />
+              <Route path="/workout/edit/:id" element={<EditWorkoutPage />} />
+
               <Route element={<AppShell />}>
                 <Route path="/home" element={<HomePage />} />
                 <Route path="/planner" element={<PlannerPage />} />

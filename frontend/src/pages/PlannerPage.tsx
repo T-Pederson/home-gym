@@ -1,11 +1,13 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { ChevronDown, ChevronUp, Heart, Loader2 } from 'lucide-react'
 import { generateWorkout } from '../api/planner'
 import { createWorkout, deleteWorkout, getWorkout, getWorkouts, toggleFavorite } from '../api/workouts'
 import * as profileApi from '../api/profile'
-import type { EditableExercise, GeneratedWorkout, Workout, WorkoutDetail } from '../types/workout'
+import type { EditableExercise, GeneratedWorkout, Workout, WorkoutDetail, WorkoutSession, ActiveExercise, SessionExercise } from '../types/workout'
+import { useWorkoutSessionStore } from '../stores/workoutSessionStore'
 import GeneratedWorkoutView from '../components/workouts/GeneratedWorkoutView'
 import SavedWorkoutCard from '../components/workouts/SavedWorkoutCard'
 import WorkoutDetailModal from '../components/workouts/WorkoutDetailModal'
@@ -225,7 +227,9 @@ function GenerateTab({ onGenerated }: GenerateTabProps) {
 // ---------------------------------------------------------------------------
 
 function MyWorkoutsTab() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { startSession } = useWorkoutSessionStore()
   const [styleFilter, setStyleFilter] = useState('')
   const [favoritesOnly, setFavoritesOnly] = useState(false)
   const [viewingWorkout, setViewingWorkout] = useState<WorkoutDetail | null>(null)
@@ -258,6 +262,56 @@ function MyWorkoutsTab() {
     } catch {
       toast.error('Failed to load workout details')
     }
+  }
+
+  function handleEdit(id: string) {
+    navigate(`/workout/edit/${id}`)
+  }
+
+  function handleStartSaved(workout: WorkoutDetail) {
+    const validExercises = workout.exercises.filter((ex) => ex.exercise !== null)
+    if (validExercises.length === 0) {
+      toast.error('No valid exercises found in this workout')
+      return
+    }
+    const sessionExercises: SessionExercise[] = validExercises.map((ex, i) => ({
+      exercise_id: ex.exercise_id,
+      exercise_name: ex.exercise!.name,
+      exercise: ex.exercise!,
+      order: i,
+      target_sets: ex.sets,
+      target_reps: ex.reps,
+      target_duration_seconds: ex.duration_seconds,
+      target_weight: ex.target_weight,
+      weight_unit: ex.weight_unit,
+      rest_seconds: ex.rest_seconds,
+      superset_group: ex.superset_group,
+    }))
+    const activeExercises: ActiveExercise[] = validExercises.map((ex, i) => ({
+      exercise_id: ex.exercise_id,
+      exercise_name: ex.exercise!.name,
+      order: i,
+      sets: [],
+    }))
+    const session: WorkoutSession = {
+      workoutId: workout.id,
+      workoutName: workout.name,
+      style: workout.workout_style,
+      isCircuit: workout.is_circuit,
+      circuitRounds: workout.circuit_rounds ?? 3,
+      circuitSetDurationSeconds: 45,
+      circuitRestSeconds: 15,
+      circuitRoundRestSeconds: 60,
+      exercises: sessionExercises,
+      startedAt: new Date().toISOString(),
+      activeExercises,
+      currentExerciseIndex: 0,
+      currentSetIndex: 0,
+      currentRoundIndex: 0,
+      currentCircuitExerciseIndex: 0,
+    }
+    startSession(session)
+    navigate('/workout/active')
   }
 
   return (
@@ -313,13 +367,19 @@ function MyWorkoutsTab() {
               onView={handleView}
               onFavorite={(id) => favoriteMutation.mutate(id)}
               onDelete={(id) => setDeleteId(id)}
+              onEdit={handleEdit}
             />
           ))}
         </div>
       )}
 
       {viewingWorkout && (
-        <WorkoutDetailModal workout={viewingWorkout} onClose={() => setViewingWorkout(null)} />
+        <WorkoutDetailModal
+          workout={viewingWorkout}
+          onClose={() => setViewingWorkout(null)}
+          onStart={() => handleStartSaved(viewingWorkout)}
+          onEdit={() => { setViewingWorkout(null); handleEdit(viewingWorkout.id) }}
+        />
       )}
 
       {deleteId && (
@@ -347,9 +407,55 @@ function MyWorkoutsTab() {
 type Tab = 'generate' | 'my-workouts'
 
 export function PlannerPage() {
+  const navigate = useNavigate()
+  const { startSession } = useWorkoutSessionStore()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<Tab>('generate')
   const [generatedWorkout, setGeneratedWorkout] = useState<GeneratedWorkout | null>(null)
+
+  function handleStart(exercises: EditableExercise[]) {
+    if (!generatedWorkout) return
+    const style = generatedWorkout.style
+    const workoutName = style.charAt(0).toUpperCase() + style.slice(1) + ' Workout'
+    const sessionExercises: SessionExercise[] = exercises.map((ex, i) => ({
+      exercise_id: ex.exercise.id,
+      exercise_name: ex.exercise.name,
+      exercise: ex.exercise,
+      order: i,
+      target_sets: ex.sets,
+      target_reps: ex.reps,
+      target_duration_seconds: ex.duration_seconds,
+      target_weight: ex.weight,
+      weight_unit: ex.weight_unit,
+      rest_seconds: ex.rest_seconds,
+      superset_group: ex.superset_group,
+    }))
+    const activeExercises: ActiveExercise[] = exercises.map((ex, i) => ({
+      exercise_id: ex.exercise.id,
+      exercise_name: ex.exercise.name,
+      order: i,
+      sets: [],
+    }))
+    const session: WorkoutSession = {
+      workoutId: null,
+      workoutName,
+      style,
+      isCircuit: generatedWorkout.is_circuit,
+      circuitRounds: generatedWorkout.circuit_rounds ?? 3,
+      circuitSetDurationSeconds: generatedWorkout.circuit_set_duration_seconds ?? 45,
+      circuitRestSeconds: generatedWorkout.circuit_rest_seconds ?? 15,
+      circuitRoundRestSeconds: generatedWorkout.circuit_round_rest_seconds ?? 60,
+      exercises: sessionExercises,
+      startedAt: new Date().toISOString(),
+      activeExercises,
+      currentExerciseIndex: 0,
+      currentSetIndex: 0,
+      currentRoundIndex: 0,
+      currentCircuitExerciseIndex: 0,
+    }
+    startSession(session)
+    navigate('/workout/active')
+  }
 
   const saveMutation = useMutation({
     mutationFn: createWorkout,
@@ -387,6 +493,7 @@ export function PlannerPage() {
         weight_unit: ex.weight_unit,
         rest_seconds: ex.rest_seconds,
         notes: null,
+        superset_group: ex.superset_group,
       })),
     })
   }
@@ -427,6 +534,7 @@ export function PlannerPage() {
             isSaving={saveMutation.isPending}
             onSave={handleSave}
             onRegenerate={() => setGeneratedWorkout(null)}
+            onStart={handleStart}
           />
         ) : (
           <GenerateTab onGenerated={setGeneratedWorkout} />

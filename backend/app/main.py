@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import init_db
-from app.routers import auth, exercises, planner, users, workouts
+from app.routers import auth, exercises, logs, planner, users, workouts
 
 
 @asynccontextmanager
@@ -28,6 +28,7 @@ app.include_router(users.router)
 app.include_router(exercises.router, prefix="/api/v1")
 app.include_router(workouts.router)
 app.include_router(planner.router)
+app.include_router(logs.router)
 
 
 @app.get("/api/health")

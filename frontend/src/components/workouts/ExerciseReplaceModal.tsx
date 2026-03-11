@@ -81,8 +81,8 @@ export default function ExerciseReplaceModal({ target, onReplace, onClose }: Pro
     const hasImages = images.length > 0
 
     return (
-      <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 sm:items-center">
-        <div className="flex max-h-[90vh] w-full max-w-md flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
+        <div className="flex max-h-[90vh] w-full max-w-md flex-col rounded-2xl bg-white shadow-xl">
           {/* Header */}
           <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-4">
             <button
@@ -263,8 +263,8 @@ export default function ExerciseReplaceModal({ target, onReplace, onClose }: Pro
   const exercises = data?.exercises ?? []
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
-      <div className="flex max-h-[90vh] w-full max-w-md flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="flex max-h-[90vh] w-full max-w-md flex-col rounded-2xl bg-white shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <div>

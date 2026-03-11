@@ -10,10 +10,12 @@ import WorkoutHeader from '../components/session/WorkoutHeader'
 import SetLogger from '../components/session/SetLogger'
 import RestTimer from '../components/session/RestTimer'
 import WorkoutSummary from '../components/session/WorkoutSummary'
+import CountdownTimer from '../components/session/CountdownTimer'
+import WorkTimer from '../components/session/WorkTimer'
 import ExerciseInfoModal from '../components/workouts/ExerciseInfoModal'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 
-type SessionPhase = 'exercising' | 'resting' | 'complete'
+type SessionPhase = 'countdown' | 'exercising' | 'resting' | 'complete'
 
 export function ActiveWorkoutPage() {
   const navigate = useNavigate()
@@ -27,7 +29,7 @@ export function ActiveWorkoutPage() {
     setCurrentCircuitExerciseIndex,
   } = useWorkoutSessionStore()
 
-  const [phase, setPhase] = useState<SessionPhase>('exercising')
+  const [phase, setPhase] = useState<SessionPhase>('countdown')
   const [showInfo, setShowInfo] = useState(false)
   const [showAbandon, setShowAbandon] = useState(false)
   const completedAtRef = useRef<string | null>(null)
@@ -38,15 +40,59 @@ export function ActiveWorkoutPage() {
     ? Math.floor((Date.now() - new Date(session.startedAt).getTime()) / 1000)
     : 0
 
-  const { elapsedSeconds, isResting, restSecondsLeft, startRest, skipRest } =
-    useTimer(startedSecondsAgo)
+  const {
+    elapsedSeconds,
+    isPaused,
+    pause,
+    resume,
+    isResting,
+    restSecondsLeft,
+    startRest,
+    skipRest,
+    isWorking,
+    workSecondsLeft,
+    startWork,
+    skipWork,
+    isCountingDown,
+    countdownSecondsLeft,
+    startCountdown,
+    skipCountdown,
+  } = useTimer(startedSecondsAgo)
 
-  // Guard: redirect if no active session (but not when in complete phase — save clears session before navigating)
+  // Kick off the 5-second get-ready countdown on mount
   useEffect(() => {
-    if (!session && phase === 'exercising') {
+    startCountdown(5)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Guard: redirect if no active session
+  useEffect(() => {
+    if (!session && phase !== 'complete') {
       navigate('/planner', { replace: true })
     }
   }, [session, phase, navigate])
+
+  // Transition: countdown ends → exercising (+ start work timer for HIIT)
+  const prevIsCountingDownRef = useRef(false)
+  useEffect(() => {
+    const was = prevIsCountingDownRef.current
+    prevIsCountingDownRef.current = isCountingDown
+    if (was && !isCountingDown && phase === 'countdown') {
+      setPhase('exercising')
+      if (session?.isCircuit) {
+        startWork(session.circuitSetDurationSeconds)
+      }
+    }
+  }, [isCountingDown]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // HIIT: after rest ends, restart the work timer for the next exercise
+  const prevIsRestingRef = useRef(false)
+  useEffect(() => {
+    const was = prevIsRestingRef.current
+    prevIsRestingRef.current = isResting
+    if (was && !isResting && session?.isCircuit && phase === 'exercising') {
+      startWork(session.circuitSetDurationSeconds)
+    }
+  }, [isResting]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const queryClient = useQueryClient()
   const saveMutation = useMutation({
@@ -97,21 +143,22 @@ export function ActiveWorkoutPage() {
       if (nextIdx < session.exercises.length) {
         return session.exercises[nextIdx].exercise_name
       }
-      // Last in round — next round starts from exercise 0
       if (session.currentRoundIndex + 1 < session.circuitRounds) {
         return session.exercises[0].exercise_name
       }
       return null
     }
-    // Superset: currentEx has already been advanced — always show it
     if (currentEx.superset_group) {
       return currentEx.exercise_name
     }
-    // Standalone: currentSetIndex === 0 means we moved to a new exercise
     if (session.currentSetIndex === 0) {
       return currentEx.exercise_name
     }
     return null
+  }
+
+  function getHiitDefaultWeight(): number {
+    return getPreviousSet()?.weight ?? currentEx.target_weight ?? 0
   }
 
   // ----- Advance logic -----
@@ -132,31 +179,24 @@ export function ActiveWorkoutPage() {
       const isLastPass = nextPassIdx >= currentEx.target_sets
 
       if (isLastInGroup && isLastPass) {
-        // Entire superset group done — move to next exercise (or finish)
         if (end + 1 >= session.exercises.length) { complete(); return }
         setCurrentExerciseIndex(end + 1)
         setCurrentSetIndex(0)
       } else if (isLastInGroup) {
-        // End of this pass — cycle back to start of group
         setCurrentExerciseIndex(start)
         setCurrentSetIndex(nextPassIdx)
       } else {
-        // Move to next exercise in group, same set index
         setCurrentExerciseIndex(currentExIdx + 1)
       }
       if (currentEx.rest_seconds > 0) startRest(currentEx.rest_seconds)
       return
     }
 
-    // Standalone (original logic)
     const nextSet = session.currentSetIndex + 1
     const isLastSet = nextSet >= currentEx.target_sets
     const isLastExercise = currentExIdx + 1 >= session.exercises.length
 
-    if (isLastSet && isLastExercise) {
-      complete()
-      return
-    }
+    if (isLastSet && isLastExercise) { complete(); return }
 
     if (isLastSet) {
       setCurrentExerciseIndex(currentExIdx + 1)
@@ -214,6 +254,36 @@ export function ActiveWorkoutPage() {
     else advanceStraightSet()
   }
 
+  // HIIT: work timer auto-completed (full duration)
+  function handleAutoCompleteWork(weight: number, weightUnit: string) {
+    handleCompleteSet({
+      set_number: getSetNumber(),
+      reps: null,
+      target_reps: null,
+      duration_seconds: session.circuitSetDurationSeconds,
+      target_duration_seconds: session.circuitSetDurationSeconds,
+      weight,
+      weight_unit: weightUnit,
+      completed: true,
+    })
+  }
+
+  // HIIT: user tapped "Finish Early" — log actual elapsed duration
+  function handleFinishEarlyWork(weight: number, weightUnit: string) {
+    const elapsed = session.circuitSetDurationSeconds - (workSecondsLeft ?? 0)
+    skipWork()
+    handleCompleteSet({
+      set_number: getSetNumber(),
+      reps: null,
+      target_reps: null,
+      duration_seconds: Math.max(elapsed, 1),
+      target_duration_seconds: session.circuitSetDurationSeconds,
+      weight,
+      weight_unit: weightUnit,
+      completed: true,
+    })
+  }
+
   // ----- Save / Discard -----
 
   function handleSave(notes: string) {
@@ -267,15 +337,39 @@ export function ActiveWorkoutPage() {
         exerciseNumber={currentExIdx + 1}
         totalExercises={session.exercises.length}
         onEnd={() => setShowAbandon(true)}
+        isPaused={isPaused}
+        onPause={pause}
+        onResume={resume}
       />
 
       <main className="flex-1 overflow-y-auto px-4 py-6">
-        {isResting && restSecondsLeft !== null && restSecondsLeft > 0 ? (
+        {phase === 'countdown' && countdownSecondsLeft !== null ? (
+          <CountdownTimer
+            workoutName={session.workoutName}
+            secondsLeft={countdownSecondsLeft}
+            onSkip={skipCountdown}
+          />
+        ) : isResting && restSecondsLeft !== null && restSecondsLeft > 0 ? (
           <RestTimer
             secondsLeft={restSecondsLeft}
             totalSeconds={restTotal}
             nextExerciseName={getNextExerciseName()}
             onSkip={skipRest}
+          />
+        ) : isCircuit && phase === 'exercising' ? (
+          <WorkTimer
+            secondsLeft={workSecondsLeft ?? 0}
+            totalSeconds={session.circuitSetDurationSeconds}
+            isPaused={isPaused}
+            exerciseName={currentEx.exercise_name}
+            primaryMuscle={currentEx.exercise.primary_muscles[0] ?? 'body only'}
+            equipment={currentEx.exercise.equipment ?? ''}
+            roundNumber={session.currentRoundIndex + 1}
+            totalRounds={session.circuitRounds}
+            weightUnit={currentEx.weight_unit}
+            defaultWeight={getHiitDefaultWeight()}
+            onFinishEarly={handleFinishEarlyWork}
+            onAutoComplete={handleAutoCompleteWork}
           />
         ) : (
           <SetLogger

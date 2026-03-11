@@ -24,8 +24,8 @@ interface Props {
 
 export default function WorkoutDetailModal({ workout, onClose, onStart, onEdit }: Props) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 sm:items-center">
-      <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-2xl bg-white shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <div>

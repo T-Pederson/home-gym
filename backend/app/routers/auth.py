@@ -29,16 +29,17 @@ def _set_refresh_cookie(response: Response, token: str) -> None:
         key=REFRESH_TOKEN_COOKIE,
         value=token,
         httponly=True,
-        samesite="lax",
+        secure=True,
+        samesite="none",
         max_age=settings.refresh_token_expire_days * 86400,
-        path="/api/v1/auth",
+        path="/",
     )
 
 
 def _clear_refresh_cookie(response: Response) -> None:
     response.delete_cookie(
         key=REFRESH_TOKEN_COOKIE,
-        path="/api/v1/auth",
+        path="/",
     )
 
 

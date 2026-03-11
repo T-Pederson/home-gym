@@ -16,6 +16,7 @@ class WorkoutExerciseItemSchema(BaseModel):
     weight_unit: str = "lbs"
     rest_seconds: int = 60
     notes: Optional[str] = None
+    superset_group: Optional[str] = None
 
 
 class WorkoutExerciseDetail(WorkoutExerciseItemSchema):

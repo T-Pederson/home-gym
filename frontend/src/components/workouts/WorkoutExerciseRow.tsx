@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ArrowLeftRight, ChevronDown, ChevronUp, GripVertical, Info, ThumbsDown, ThumbsUp, TrendingUp } from 'lucide-react'
+import { ArrowLeftRight, ChevronDown, ChevronUp, GripVertical, Info, ThumbsDown, ThumbsUp, Trash2, TrendingUp } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import type { EditableExercise } from '../../types/workout'
@@ -20,9 +20,10 @@ interface Props {
   onChange: (updated: EditableExercise) => void
   onInfo: () => void
   onReplace: () => void
+  onRemove?: () => void
 }
 
-export default function WorkoutExerciseRow({ ex, index, isHIIT, onChange, onInfo, onReplace }: Props) {
+export default function WorkoutExerciseRow({ ex, index, isHIIT, onChange, onInfo, onReplace, onRemove }: Props) {
   const { exercise, weight_suggestion } = ex
   const hasIncrease = weight_suggestion.note === 'increase' && weight_suggestion.previous_weight !== null
 
@@ -129,6 +130,16 @@ export default function WorkoutExerciseRow({ ex, index, isHIIT, onChange, onInfo
             >
               <ArrowLeftRight className="h-3.5 w-3.5" />
             </button>
+            {onRemove && (
+              <button
+                type="button"
+                onClick={onRemove}
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500"
+                title="Remove exercise"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
             <span className="text-xs font-medium text-gray-400">#{index + 1}</span>
           </div>
         </div>

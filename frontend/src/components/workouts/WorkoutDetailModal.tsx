@@ -1,4 +1,4 @@
-import { X, Clock, Dumbbell } from 'lucide-react'
+import { Pencil, Play, X, Clock, Dumbbell } from 'lucide-react'
 import type { WorkoutDetail } from '../../types/workout'
 
 const STYLE_LABELS: Record<string, string> = {
@@ -18,11 +18,13 @@ const STYLE_COLORS: Record<string, string> = {
 interface Props {
   workout: WorkoutDetail
   onClose: () => void
+  onStart?: () => void
+  onEdit?: () => void
 }
 
-export default function WorkoutDetailModal({ workout, onClose }: Props) {
+export default function WorkoutDetailModal({ workout, onClose, onStart, onEdit }: Props) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 sm:items-center">
       <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
@@ -57,8 +59,8 @@ export default function WorkoutDetailModal({ workout, onClose }: Props) {
           )}
         </div>
 
-        {/* Exercise list */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        {/* Exercise list — scrollable */}
+        <div className={`overflow-y-auto px-5 py-4 ${onStart ? 'flex-1' : 'flex-1'}`}>
           <div className="space-y-3">
             {workout.exercises.map((ex, i) => {
               const name = ex.exercise?.name ?? `Exercise ${i + 1}`
@@ -96,6 +98,34 @@ export default function WorkoutDetailModal({ workout, onClose }: Props) {
             })}
           </div>
         </div>
+
+        {/* Footer */}
+        {(onStart || onEdit) && (
+          <div className="border-t border-gray-100 px-5 py-4">
+            <div className={`grid gap-3 ${onStart && onEdit ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={onEdit}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Edit
+                </button>
+              )}
+              {onStart && (
+                <button
+                  type="button"
+                  onClick={onStart}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white hover:bg-green-700"
+                >
+                  <Play className="h-4 w-4" />
+                  Start Workout
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

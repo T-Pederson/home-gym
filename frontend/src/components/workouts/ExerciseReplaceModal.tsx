@@ -34,7 +34,7 @@ const levelColor: Record<string, string> = {
 }
 
 interface Props {
-  target: EditableExercise
+  target?: EditableExercise
   onReplace: (exercise: Exercise) => void
   onClose: () => void
 }
@@ -47,11 +47,11 @@ export default function ExerciseReplaceModal({ target, onReplace, onClose }: Pro
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
 
-  // Pre-fill filters from the current exercise
+  // Pre-fill filters from the current exercise (if replacing); blank if adding
   const initialMuscleGroup =
-    MUSCLE_TO_GROUP[target.exercise.primary_muscles[0] ?? ''] ?? ''
+    MUSCLE_TO_GROUP[target?.exercise.primary_muscles[0] ?? ''] ?? ''
   const [muscleGroup, setMuscleGroup] = useState(initialMuscleGroup)
-  const [equipment, setEquipment] = useState(target.exercise.equipment ?? '')
+  const [equipment, setEquipment] = useState(target?.exercise.equipment ?? '')
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query), 300)
@@ -251,7 +251,7 @@ export default function ExerciseReplaceModal({ target, onReplace, onClose }: Pro
               onClick={() => onReplace(previewExercise)}
               className="w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700"
             >
-              Replace Exercise
+              {target ? 'Replace Exercise' : 'Add Exercise'}
             </button>
           </div>
         </div>
@@ -268,10 +268,14 @@ export default function ExerciseReplaceModal({ target, onReplace, onClose }: Pro
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <div>
-            <h2 className="font-semibold text-gray-900">Replace Exercise</h2>
-            <p className="mt-0.5 max-w-[220px] truncate text-xs text-gray-500">
-              Currently: {target.exercise.name}
-            </p>
+            <h2 className="font-semibold text-gray-900">
+              {target ? 'Replace Exercise' : 'Add Exercise'}
+            </h2>
+            {target && (
+              <p className="mt-0.5 max-w-[220px] truncate text-xs text-gray-500">
+                Currently: {target.exercise.name}
+              </p>
+            )}
           </div>
           <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="h-5 w-5" />
